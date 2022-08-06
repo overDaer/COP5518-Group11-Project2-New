@@ -64,7 +64,7 @@ public class Network {
 			String addresses = request.substring(0,42);
 			int srcPort = Integer.parseInt(addresses.substring(15,21));
 			int destPort = Integer.parseInt(addresses.substring(36,42));
-			String segment = request.substring(42,53);
+			String segment = request.substring(43,53);
 			//forward packet to sender
 			sendResponse(request, LOCALHOST, destPort);
 			

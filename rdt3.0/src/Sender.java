@@ -72,86 +72,91 @@ public class Sender {
     
 	public void run()
 	{
-		// run server until gracefully shut down
 		_continueService = true;
-		System.out.println("Please input message to send out: ");
-		Scanner scan = new Scanner(System.in);
-		String message = scan.nextLine();
-		
-		String[] messagePackets = message.split("(?<=\\G.{8})");
-		int count = messagePackets.length;
-		int i = 0;
-		for (String str : messagePackets) {
-			sendResponse(message, LOCALHOST, rcvPort);
-		}
+//		for (String str : messagePackets) {
+//			sendResponse(message, LOCALHOST, rcvPort);
+//		}
 		
 		
 		while (_continueService) {
 			
-			switch(rdtSendState) {
-			case 0:
-				if(i < messagePackets.length) {
-					seq = 0;
-					sendResponse(messagePackets[i], LOCALHOST, rcvPort);
-					rdtSendState++;
-					break;
-				}
-				else {
-					break;
-				}
-			case 1:
-				if(i < messagePackets.length) {
-					try {
-						_socket.setSoTimeout(1000);
-						DatagramPacket receive = receiveRequest();
-						String result = getMessage(receive);
-						//result first char represesnts ACK0 or ACK1, second char represents corrupt
-						if (result.substring(0,1) == "0" && result.substring(1,2)=="0") {
-							rdtSendState++;
-							i++;
-						}
-						
-					} catch (SocketException e) {
-						//if socket times out send packet again
-						System.err.println("socket timed out");
+			System.out.println("Please input message to send out: ");
+			Scanner scan = new Scanner(System.in);
+			String message = scan.nextLine();
+			
+
+			if (message.equals("<shutdown/>")) {
+				sendResponse(message, LOCALHOST, rcvPort);
+				_continueService = false;
+			}
+			
+			String[] messagePackets = message.split("(?<=\\G.{8})");
+			int count = messagePackets.length;
+			int i = 0;
+			
+			while (i < count) {
+				switch(rdtSendState) {
+				case 0:
+					if(i < messagePackets.length) {
+						seq = 0;
 						sendResponse(messagePackets[i], LOCALHOST, rcvPort);
+						rdtSendState++;
+						break;
 					}
-					break;
-				}
-				else {
-					break;
-				}
-			case 2:
-				if(i < messagePackets.length) {
-					seq = 1;
-					sendResponse(messagePackets[i], LOCALHOST, rcvPort);
-					rdtSendState++;
-					break;
-				} else {
-					break;
-				}
-			case 3:
-				if(i < messagePackets.length) {
-					try {
-						_socket.setSoTimeout(1000);
-						DatagramPacket receive = receiveRequest();
-						String result = getMessage(receive);
-						if(result.substring(0,1) == "1" && result.substring(1,2)=="0"){
-							rdtSendState = 0;
-							i++;
+					else {
+						break;
+					}
+				case 1:
+					if(i < messagePackets.length) {
+						try {
+							_socket.setSoTimeout(1000);
+							DatagramPacket receive = receiveRequest();
+							String result = getMessage(receive);
+							//result first char represesnts ACK0 or ACK1, second char represents corrupt
+							if (result.substring(0,1) == "0" && result.substring(1,2)=="0") {
+								rdtSendState++;
+								i++;
+							}
+							
+						} catch (SocketException e) {
+							//if socket times out send packet again
+							System.err.println("socket timed out");
+							sendResponse(messagePackets[i], LOCALHOST, rcvPort);
 						}
-					} catch (SocketException e) {
-						System.err.println("socket timed out");
-						sendResponse(messagePackets[i], LOCALHOST, rcvPort);
+						break;
 					}
-					break;	
+					else {
+						break;
+					}
+				case 2:
+					if(i < messagePackets.length) {
+						seq = 1;
+						sendResponse(messagePackets[i], LOCALHOST, rcvPort);
+						rdtSendState++;
+						break;
+					} else {
+						break;
+					}
+				case 3:
+					if(i < messagePackets.length) {
+						try {
+							_socket.setSoTimeout(1000);
+							DatagramPacket receive = receiveRequest();
+							String result = getMessage(receive);
+							if(result.substring(0,1) == "1" && result.substring(1,2)=="0"){
+								rdtSendState = 0;
+								i++;
+							}
+						} catch (SocketException e) {
+							System.err.println("socket timed out");
+							sendResponse(messagePackets[i], LOCALHOST, rcvPort);
+						}
+						break;	
+					}
+					else {
+						break;
+					}
 				}
-				else {
-					break;
-				}
-			default:
-				if(i == count) _continueService = false;
-				break;
 			}
 		}
 		_socket.close();
@@ -330,7 +335,7 @@ public class Sender {
         //format is srcIP 16 bytes, srcPort 6 bytes, destIP 16 bytes, destPort 6 bytes
         String networkLayer = LOCALHOST + padLeftZeros(String.valueOf(this.port),6) + LOCALHOST + padLeftZeros(String.valueOf(port),6);
         //format is seq# 1 byte, checkSum 1 byte, message 8 bytes
-        String transportLayer = String.valueOf(this.seq) + " " + request;
+        String transportLayer = String.valueOf(this.seq) + "0" + request;
         String message = networkLayer + transportLayer;
         // copy message into buffer
         byte data[] = message.getBytes();
