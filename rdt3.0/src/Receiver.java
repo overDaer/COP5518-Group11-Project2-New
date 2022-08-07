@@ -24,7 +24,8 @@ public class Receiver {
 	private DatagramSocket _socket; // the socket for communication with a server
 	private int networkPort;
 	private int seq = 0;
-
+	private String ack="ACK";
+	
 	/**
 	 * Constructs a TCPclient object.
 	 */
@@ -135,47 +136,51 @@ public class Receiver {
 
 			sendResponse(message, LOCALHOST, networkPort);
 
-//			//parse out addresses and segment from packet
+//			parse out addresses and segment from packet
 //			String request = new String (sendingDatagramPacket.getData()); //.trim();
 //			String addresses = request.substring(0,42);
 //			int srcPort = Integer.parseInt(addresses.substring(16,6));
 //			int destPort = Integer.parseInt(addresses.substring(38,6));
 //			String segment = request.substring(44,10);
-//			//forward packet to sender
+			int received_seq =Integer.parseInt(message.substring(44,2));
+//			forward packet to sender
 //			sendResponse(request, LOCALHOST, destPort);
 
-//			switch(rdtSendState) {
-//			case 0:
-//				
-//				break;
-//			case 1:
-//				break;
-//				
-//			}
+			switch (rdtSendState) {
+			case 0:
+				if(received_seq==seq){
+					seq = 0;					
+					System.out.println("rdtSendState: " + message);
+					rdtSendState++;
+//					sendResponse(message[0], LOCALHOST, rcvPort);
+					break;
+				} else {
+					break;
+				}
+			case 1:
+				break;
+
+			}
 
 //			DatagramPacket newDatagramPacket = receiveRequest();
 //
 //			String request = new String (newDatagramPacket.getData()).trim();
 //
-//			System.out.println ("sender IP: " + newDatagramPacket.getAddress().getHostAddress());
-//			System.out.println ("sender request: " + request);
+			System.out.println("sender IP: " + receivedDatagram.getAddress().getHostAddress());
+			System.out.println("sender request: " + message);
 //			
-//			if (request.equals("<shutdown/>")) {
-//				_continueService = false;
-//			}
-//
-//			if (request != null) {
-//
-//				String response = "<echo>"+request+"</echo>";
-//            
-//				sendResponse(
-//					response, 
-//					newDatagramPacket.getAddress().getHostName(), 
-//					newDatagramPacket.getPort());
-//			}
-//			else {
-//				System.err.println ("incorrect response from server");
-//			}
+			if (message.equals("<shutdown/>")) {
+				_continueService = false;
+			}
+
+			if (message != null) {
+
+				String response = "<echo>" + message + "</echo>";
+
+				sendResponse(response, receivedDatagram.getAddress().getHostName(), receivedDatagram.getPort());
+			} else {
+				System.err.println("incorrect response from server");
+			}
 		}
 	}
 
@@ -263,11 +268,15 @@ public class Receiver {
 		String addresses = request.substring(0, 42);
 		// the substrings are flipped here so srcPort and destPorts swapped
 		int srcPort = Integer.parseInt(addresses.substring(36, 42));
+		System.out.println("New Source Port:" + srcPort);
 		int destPort = Integer.parseInt(addresses.substring(15, 21));
+		System.out.println("New Destination Port:" + srcPort);
+		
+//		Segmenting the received message
 		String segment = request.substring(43, 53);
 
-		// to show that packet was received print out
-		System.out.println(segment);
+//		Printing out the message received in the packet
+		System.out.println("Received Message: " + segment);
 
 		// format is srcIP 16 bytes, srcPort 6 bytes, destIP 16 bytes, destPort 6 bytes
 		String networkLayer = LOCALHOST + padLeftZeros(String.valueOf(srcPort), 6) + LOCALHOST
