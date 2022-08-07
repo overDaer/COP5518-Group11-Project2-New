@@ -16,7 +16,7 @@ import java.util.Scanner;
  * Project 2
  *
  * This file describes the functions to be implemented by the UDPclient class
- * You may also implement any auxillary functions you deem necessary.
+ * You may also implement any auxiliary functions you deem necessary.
  */
 public class Sender {
 
@@ -107,7 +107,7 @@ public class Sender {
 							_socket.setSoTimeout(1000);
 							DatagramPacket receive = receiveRequest();
 							String result = getMessage(receive);
-							// result first char represesnts ACK0 or ACK1, second char represents corrupt
+							// result first char represents ACK0 or ACK1, second char represents corrupt
 							if (result.substring(0, 1) == "0" && result.substring(1, 2) == "0") {
 								rdtSendState++;
 								i++;
