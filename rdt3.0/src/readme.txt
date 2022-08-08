@@ -1,5 +1,5 @@
 COP5518-Group11-Project2
-Dae Sung
+Dae Sung & Mukesh Rathore
 
 First compile the classes using javac command:
 
