@@ -5,6 +5,7 @@ Assignment Number: Project 2
 ************/
 
 INSTRUCTIONS:
+
 First compile the classes using javac command:
 
 javac -source 1.8 -target 1.8 Network.java
