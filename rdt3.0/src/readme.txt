@@ -1,6 +1,10 @@
-COP5518-Group11-Project2
-Dae Sung & Mukesh Rathore
+/************
+Student Name: Dae Sung, Mukesh Rathore
+File Name: ReadMe
+Assignment Number: Project 2
+************/
 
+INSTRUCTIONS:
 First compile the classes using javac command:
 
 javac Network.java
