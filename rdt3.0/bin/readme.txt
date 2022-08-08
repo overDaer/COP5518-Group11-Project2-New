@@ -5,12 +5,11 @@ Assignment Number: Project 2
 ************/
 
 INSTRUCTIONS:
-
 First compile the classes using javac command:
 
-javac -source 1.8 -target 1.8 Network.java
-javac -source 1.8 -target 1.8 Network.java
-javac -source 1.8 -target 1.8 Network.java
+javac Network.java
+javac Receiver.java
+javac Sender.java
 
 The format is following the instructions:
 
