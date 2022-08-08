@@ -7,18 +7,22 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
-/*
- * UDPclient.java
+/* Dae Sung & Mukesh Rathore 
+ * Network.java
  * Systems and Networks II
  * Project 2
  *
- * This file describes the functions to be implemented by the UDPclient class
- * You may also implement any auxillary functions you deem necessary.
+ * This file implements the Network class for RDT3.0 protocol
+ * This class simply forwards messages between receiver and sender,
+ * while simulating issues with networks such as time delay, data corruption,
+ * and lost packets.
  */
 public class Network {
 
-    private static final int BUFFER_SIZE = 54;
+    private static final int BUFFER_SIZE = 52;
     private DatagramSocket _socket; // the socket for communication with clients
     private int            port;   // the port number for communication with this server
 	private boolean        _continueService; 
@@ -27,6 +31,7 @@ public class Network {
 	private int				lostPercent;
 	private int				delayedPercent;
 	private int				errorPercent;
+	private Random			rand = new Random();
 
     
     /**
@@ -57,36 +62,51 @@ public class Network {
 		_continueService = true;
 		
 		while (_continueService) {
+			
 			DatagramPacket sendingDatagramPacket = receiveRequest();
-
+			
 			//parse out addresses and segment from packet
 			String request = new String (sendingDatagramPacket.getData()); //.trim();
+			request = request.substring(0,52);
 			String addresses = request.substring(0,42);
 			int srcPort = Integer.parseInt(addresses.substring(15,21));
 			int destPort = Integer.parseInt(addresses.substring(36,42));
-			String segment = request.substring(42,53);
+			String segment = request.substring(42,52);
+			
+			if (segment.contains("shutdown")) {
+				sendResponse(request, LOCALHOST, destPort);
+				_continueService = false;
+				break;
+			}
+			
 			//forward packet to sender
-			sendResponse(request, LOCALHOST, destPort);
-			
-//			System.out.println ("sender IP: " + newDatagramPacket.getAddress().getHostAddress());
-//			System.out.println ("sender request: " + request);
-			
-//			if (request.equals("<shutdown/>")) {
-//				_continueService = false;
-//			}
-//
-//			if (request != null) {
-//
-//				String response = "<echo>"+request+"</echo>";
-//            
-//				sendResponse(
-//					response, 
-//					newDatagramPacket.getAddress().getHostName(), 
-//					newDatagramPacket.getPort());
-//			}
-//			else {
-//				System.err.println ("incorrect response from server");
-//			}
+			boolean delay = false;
+			boolean corrupt = false;
+			boolean lost = false;
+			if (delayedPercent > rand.nextInt(100)) {
+				delay = true;
+			}
+			if (errorPercent > rand.nextInt(100)) {
+				corrupt = true;
+			}
+			if (lostPercent > rand.nextInt(100)) {
+				lost = true;
+			}
+			System.out.println("Delayed: " + delay + " Corrupted: " + corrupt  + " Lost: " + lost);
+			if(delay) {
+				try {
+					TimeUnit.MILLISECONDS.sleep(500);
+				} catch (InterruptedException e) {
+					System.err.println("Sleep interrupted.");
+				}
+			}
+			if(corrupt) {
+				request = request.substring(0,43) + "1" + request.substring(45,52);
+			}
+			if(!lost) {
+				System.out.println("Forwarding packet from port: " + srcPort + " to " + destPort);
+				sendResponse(request, LOCALHOST, destPort);
+			}
 		}
 	}
 
@@ -123,6 +143,7 @@ public class Network {
      * @return - the datagram containing the client's request or NULL if an error occured
      */
     public DatagramPacket receiveRequest() {
+    	System.out.println("Network waiting to receive packet.");
         byte[] buffer = new byte[BUFFER_SIZE];
         DatagramPacket newDatagramPacket = new DatagramPacket(buffer, BUFFER_SIZE);
         try {
@@ -167,21 +188,21 @@ public class Network {
         String serverName;
         String req;
 
-//        if (args.length != 4) {
-//            System.err.println("Usage: Server <port number> <lost percent> <delayed percent> <error percent>\n");
-//            return;
-//        }
+        if (args.length != 4) {
+            System.err.println("Usage: Server <port number> <lost percent> <delayed percent> <error percent>\n");
+            return;
+        }
         
         try {
-        	server.port = 2999;
-          server.lostPercent = 0;
-          server.delayedPercent = 0;
-          server.errorPercent = 0;
+//        	server.port = 5000;
+//          server.lostPercent = 30;
+//          server.delayedPercent = 30;
+//          server.errorPercent = 30;
         	
-//            server.port = Integer.parseInt(args[0]);
-//            server.lostPercent = Integer.parseInt(args[1]);
-//            server.delayedPercent = Integer.parseInt(args[2]);
-//            server.errorPercent = Integer.parseInt(args[3]);
+            server.port = Integer.parseInt(args[0]);
+            server.lostPercent = Integer.parseInt(args[1]);
+            server.delayedPercent = Integer.parseInt(args[2]);
+            server.errorPercent = Integer.parseInt(args[3]);
         } catch (NumberFormatException xcp) {
             System.err.println("Usage: Server <port number> <lost percent> <delayed percent> <error percent>\n");
             return;
@@ -190,7 +211,8 @@ public class Network {
         if (server.createSocket(server.port) < 0) {
             return;
         }
-
+        
+        System.out.println("Network running at port # " + server.port);
         server.run();
         server.closeSocket();
     }

@@ -1,15 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <section name="Workbench">
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
-		<item key="selection" value="createSocket"/>
+		<item key="selection" value="err"/>
 		<item key="wrap" value="true"/>
 		<item key="casesensitive" value="false"/>
 		<item key="wholeword" value="false"/>
 		<item key="incremental" value="false"/>
 		<item key="isRegEx" value="false"/>
 		<list key="findhistory">
-			<item value="createSocket"/>
+			<item value="err"/>
+			<item value="result"/>
+			<item value="53"/>
+			<item value="getMessage"/>
 			<item value="receiveRequest"/>
+			<item value="createSocket"/>
 			<item value="networkPort"/>
 			<item value="server"/>
 			<item value="pad"/>
@@ -19,15 +23,13 @@
 			<item value="trim"/>
 			<item value="socket"/>
 			<item value="sendresponse"/>
-			<item value="getdata"/>
-			<item value="&#x0A;        System.out.print (&quot;Enter a request: &quot;);&#x0A;        req = System.console().readLine();&#x0A;        &#x0A;        if (client.sendRequest(req, LOCALHOST, portNum) &lt; 0) {&#x0A;            client.closeSocket();&#x0A;            return;&#x0A;        }&#x0A;&#x0A;        String response = client.receiveResponse();&#x0A;        if (response != null) {&#x0A;            Receiver.printResponse(response.trim());&#x0A;        }&#x0A;        else {&#x0A;            System.err.println (&quot;incorrect response from server&quot;);&#x0A;        }"/>
 		</list>
 		<list key="replacehistory">
 		</list>
 	</section>
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog_dialogBounds">
-		<item key="DIALOG_X_ORIGIN" value="1867"/>
-		<item key="DIALOG_Y_ORIGIN" value="409"/>
+		<item key="DIALOG_X_ORIGIN" value="2125"/>
+		<item key="DIALOG_Y_ORIGIN" value="482"/>
 		<item key="DIALOG_WIDTH" value="322"/>
 		<item key="DIALOG_HEIGHT" value="391"/>
 		<item key="DIALOG_FONT_NAME" value="1|Segoe UI|9.0|0|WINDOWS|1|-12|0|0|0|400|0|0|0|1|0|0|0|0|Segoe UI"/>

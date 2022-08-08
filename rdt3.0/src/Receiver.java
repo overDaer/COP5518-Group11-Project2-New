@@ -6,24 +6,30 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
+import java.util.Scanner;
 
-/*
- * UDPclient.java
+/*  Dae Sung & Mukesh Rathore 
+ * Receiver.java
  * Systems and Networks II
  * Project 2
  *
- * This file describes the functions to be implemented by the UDPclient class
- * You may also implement any auxillary functions you deem necessary.
+ * This file implements the receiver class for RDT3.0 protocol
+ * As the receiver, this class only has two states in its FSM, and 
+ * for the most part is listening for incoming packets. Everytime
+ * the receiver receives a packet, it will send confirmation message back to Sender.
+ *  When the correct packet is received with correct checksum, it will iterate it's sequence
+ * and send confirmation.
  */
 public class Receiver {
 	private boolean 			_continueService;
-	private int 		    	rdtSendState = 0; //rdt has two possible states for receiver
+	private int 		    	rdtReceiveState = 0; //rdt has two possible states for receiver
 	private static final String LOCALHOST = "127.000.000.001";
-    private static final int 	BUFFER_SIZE = 54;
+    private static final int 	BUFFER_SIZE = 52;
     private DatagramSocket 		_socket; // the socket for communication with a server
     private int					networkPort;
-    private int 				seq = 0;
+    private int					senderPort;
 
     /**
      * Constructs a TCPclient object.
@@ -63,10 +69,10 @@ public class Receiver {
      *
      * @return - 0, if no error; otherwise, a negative number indicating the error
      */
-    public int sendResponse(String request, String hostAddr, int port) {
+    public int sendResponse(String request, String hostAddr, String ack) {
 
     	
-        DatagramPacket newDatagramPacket = createDatagramPacket(request, hostAddr, port);
+        DatagramPacket newDatagramPacket = createDatagramPacket(request, hostAddr, ack);
         if (newDatagramPacket != null) {
             try {
                 _socket.send(newDatagramPacket);
@@ -88,6 +94,7 @@ public class Receiver {
      * @return - the server's response or NULL if an error occured
      */
     public DatagramPacket receiveResponse() {
+    	System.out.println("Reciver waiting to receive packet.");
         byte[] buffer = new byte[BUFFER_SIZE];
         DatagramPacket receivedDatagramPacket = new DatagramPacket(buffer, BUFFER_SIZE);
         
@@ -125,64 +132,69 @@ public class Receiver {
         return 0;
     }
 
+    private String getMessage(DatagramPacket dp) {
+    	String message = new String(dp.getData());
+    	return message.substring(42,52);
+    }
+    
     public void run()
 	{
 		// run server until gracefully shut down
 		_continueService = true;
+		StringBuilder sb = new StringBuilder();
 		
 		while (_continueService) {
-			
 			DatagramPacket receivedDatagram = receiveResponse();
 			
 			String message = new String (receivedDatagram.getData()); //.trim();
+			message = message.substring(0,52);
+			String messageContent = getMessage(receivedDatagram);
 			
-			sendResponse(message, LOCALHOST, networkPort);
+			if(messageContent.contains("shutdown")) {
+				System.out.println(sb);
+				System.out.println("shutting down.");
+				_continueService = false;
+			}
 			
-//			//parse out addresses and segment from packet
-//			String request = new String (sendingDatagramPacket.getData()); //.trim();
-//			String addresses = request.substring(0,42);
-//			int srcPort = Integer.parseInt(addresses.substring(16,6));
-//			int destPort = Integer.parseInt(addresses.substring(38,6));
-//			String segment = request.substring(44,10);
-//			//forward packet to sender
-//			sendResponse(request, LOCALHOST, destPort);
+			System.out.println("Received message with ACK" + messageContent.charAt(0) + " Corrupted: " + messageContent.charAt(1));
 			
+			switch(rdtReceiveState) {
 			
-//			switch(rdtSendState) {
-//			case 0:
-//				
-//				break;
-//			case 1:
-//				break;
-//				
-//			}
-			
-			
-			
-//			DatagramPacket newDatagramPacket = receiveRequest();
-//
-//			String request = new String (newDatagramPacket.getData()).trim();
-//
-//			System.out.println ("sender IP: " + newDatagramPacket.getAddress().getHostAddress());
-//			System.out.println ("sender request: " + request);
-//			
-//			if (request.equals("<shutdown/>")) {
-//				_continueService = false;
-//			}
-//
-//			if (request != null) {
-//
-//				String response = "<echo>"+request+"</echo>";
-//            
-//				sendResponse(
-//					response, 
-//					newDatagramPacket.getAddress().getHostName(), 
-//					newDatagramPacket.getPort());
-//			}
-//			else {
-//				System.err.println ("incorrect response from server");
-//			}
+			case 0:
+				
+				//if ACK1 and not corrupt
+				if (messageContent.charAt(0) == '1' && messageContent.charAt(1) == '0') {
+					//response with "1" = ACK1
+					sendResponse(message, LOCALHOST, "1");
+					break;
+				} else if(messageContent.charAt(0) == '0' && messageContent.charAt(1) == '0') {
+					System.out.println("rdt state(0) - Received packet content : " + messageContent.substring(2));
+					sb.append(messageContent.substring(2));
+					sendResponse(message, LOCALHOST, "0");
+					//move to next state
+					rdtReceiveState = 1;
+					break;
+				}
+				break;
+				
+			case 1:
+				
+				if (messageContent.charAt(0) == '0' && messageContent.charAt(1) == '0') {
+					//response with "1" = ACK1
+					sendResponse(message, LOCALHOST, "0");
+					break;
+				} else if (messageContent.charAt(0) == '1' && messageContent.charAt(1) == '0') {
+					System.out.println("rdt state(1) - Received packet content : " + messageContent.substring(2));
+					sb.append(messageContent.substring(2));
+					sendResponse(message, LOCALHOST, "1");
+					//move to next state
+					rdtReceiveState = 0;
+					break;
+				}
+				break;
+			}
 		}
+		System.out.println("Message accumulated : " + sb);
 	}
     /**
      * The main function. Use this function for
@@ -192,21 +204,17 @@ public class Receiver {
     {
         Receiver client;
         //String    serverName;
-        String    req;
         int portNum;
 
-//        if (args.length != 1) {
-//            System.err.println("Usage: UDPreceiver <port number>\n");
-//            return;
-//        }
+
         
-        
+      if (args.length != 1) {
+      System.err.println("Usage: UDPreceiver <port number>\n");
+      return;
+  }
         try {
-        	
-        	portNum = 3000;
-            //portNum = Integer.parseInt(args[0]);
-            
-            
+        	//portNum = 6000;
+            portNum = Integer.parseInt(args[0]);
         } catch (NumberFormatException xcp) {
             System.err.println("Usage: UDPreceiver <port number>\n");
             return;
@@ -217,29 +225,8 @@ public class Receiver {
         if (client.createSocket(portNum) < 0) {
             return;
         }
-        
+        System.out.println("Receiver running at port # " + portNum);
         client.run();
-
-        
-        
-//        System.out.print ("Enter a request: ");
-//        req = System.console().readLine();
-//        
-//        if (client.sendRequest(req, LOCALHOST, portNum) < 0) {
-//            client.closeSocket();
-//            return;
-//        }
-//
-//        String response = client.receiveResponse();
-//        if (response != null) {
-//            Receiver.printResponse(response.trim());
-//        }
-//        else {
-//            System.err.println ("incorrect response from server");
-//        }
-        
-        
-        
         
         client.closeSocket();
     }
@@ -263,7 +250,7 @@ public class Receiver {
      *
      * @return a complete datagram or null if an error occurred creating the datagram
      */
-    private DatagramPacket createDatagramPacket(String request, String hostname, int port)
+    private DatagramPacket createDatagramPacket(String request, String hostname, String ack)
     {
     	byte buffer[] = new byte[BUFFER_SIZE];
 
@@ -275,15 +262,11 @@ public class Receiver {
 		//the substrings are flipped here so srcPort and destPorts swapped
 		int srcPort = Integer.parseInt(addresses.substring(36,42));
 		int destPort = Integer.parseInt(addresses.substring(15,21));
-		String segment = request.substring(43,53);
-		
-		//to show that packet was received print out
-		System.out.println(segment);
 		
         //format is srcIP 16 bytes, srcPort 6 bytes, destIP 16 bytes, destPort 6 bytes
         String networkLayer = LOCALHOST + padLeftZeros(String.valueOf(srcPort),6) + LOCALHOST + padLeftZeros(String.valueOf(destPort),6);
         //format is seq# 1 byte, checkSum 1 byte, message 8 bytes
-        String transportLayer = String.valueOf(this.seq) +  "0        ";
+        String transportLayer = ack +  "0        ";
         String message = networkLayer + transportLayer;
         // copy message into buffer
         byte data[] = message.getBytes();

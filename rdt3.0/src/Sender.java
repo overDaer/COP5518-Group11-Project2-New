@@ -10,17 +10,22 @@ import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.Scanner;
 
-/*
- * UDPclient.java
+/*  Dae Sung & Mukesh Rathore 
+ * Sender.java
  * Systems and Networks II
  * Project 2
  *
- * This file describes the functions to be implemented by the UDPclient class
- * You may also implement any auxillary functions you deem necessary.
+ * This file implements the Sender class for RDT3.0 protocol
+ * As the sender, this class has four states in its FSM. It
+ * strictly follows the protocol and will continue to wait for
+ * correct confirmation before changing seq number and sending a new
+ * message. The sender will resend the message if it listens for
+ * confirmation and the socket times out. This will continue until all
+ * messages are sent, and then prompt user for another message.
  */
 public class Sender {
 
-    private static final int BUFFER_SIZE = 54;
+    private static final int BUFFER_SIZE = 52;
     private DatagramSocket _socket; // the socket for communication with clients
     private static final String LOCALHOST = "127.000.000.001";
     
@@ -67,25 +72,20 @@ public class Sender {
 
     private String getMessage(DatagramPacket dp) {
     	String message = new String(dp.getData());
-    	return message.substring(43,53);
+    	return message.substring(42,52);
     }
     
 	public void run()
 	{
 		_continueService = true;
-//		for (String str : messagePackets) {
-//			sendResponse(message, LOCALHOST, rcvPort);
-//		}
-		
-		
 		while (_continueService) {
 			
-			System.out.println("Please input message to send out: ");
+			System.out.println("Please input message to send out (shutdown to end): ");
 			Scanner scan = new Scanner(System.in);
 			String message = scan.nextLine();
 			
 
-			if (message.equals("<shutdown/>")) {
+			if (message.contains("shutdown")) {
 				sendResponse(message, LOCALHOST, rcvPort);
 				_continueService = false;
 			}
@@ -94,99 +94,75 @@ public class Sender {
 			int count = messagePackets.length;
 			int i = 0;
 			
-			while (i < count) {
+			while (i < count && _continueService) {
+				
 				switch(rdtSendState) {
+				
 				case 0:
-					if(i < messagePackets.length) {
-						seq = 0;
-						sendResponse(messagePackets[i], LOCALHOST, rcvPort);
-						rdtSendState++;
-						break;
-					}
-					else {
-						break;
-					}
+					
+					seq = 0;
+					System.out.println("sending: " + i);
+					sendResponse(messagePackets[i], LOCALHOST, rcvPort);
+					rdtSendState++;
+					break;
+					
 				case 1:
-					if(i < messagePackets.length) {
-						try {
-							_socket.setSoTimeout(1000);
-							DatagramPacket receive = receiveRequest();
-							String result = getMessage(receive);
-							//result first char represesnts ACK0 or ACK1, second char represents corrupt
-							if (result.substring(0,1) == "0" && result.substring(1,2)=="0") {
-								rdtSendState++;
-								i++;
-							}
-							
-						} catch (SocketException e) {
-							//if socket times out send packet again
-							System.err.println("socket timed out");
-							sendResponse(messagePackets[i], LOCALHOST, rcvPort);
+					
+					try {
+						System.out.println("waiting on Receiver ACK0 reply");
+						_socket.setSoTimeout(300);
+						DatagramPacket receive = receiveRequest();
+						String result = getMessage(receive);
+						System.out.println("ACK" + result.charAt(0) +  " received" + " SEQ:" + this.seq + " Corruption: " + result.charAt(1));
+						//result first char represents ACK0 or ACK1, second char represents corrupt
+						if (result.charAt(0) == '0' && result.charAt(1) == '0') {
+							rdtSendState++;
+							i++;
 						}
+						
+					} catch (SocketException e) {
+						//if socket times out send packet again
+						System.err.println("unable to receive message from server");
 						break;
-					}
-					else {
-						break;
-					}
-				case 2:
-					if(i < messagePackets.length) {
-						seq = 1;
+					} catch (SocketTimeoutException ex) {
+						System.out.println("Sender socket timed out case 1, resending packet");
 						sendResponse(messagePackets[i], LOCALHOST, rcvPort);
-						rdtSendState++;
-						break;
-					} else {
 						break;
 					}
+					break;
+				
+				case 2:
+					System.out.println("sending: " + i);
+					seq = 1;
+					sendResponse(messagePackets[i], LOCALHOST, rcvPort);
+					rdtSendState++;
+					break;
+				
 				case 3:
-					if(i < messagePackets.length) {
-						try {
-							_socket.setSoTimeout(1000);
-							DatagramPacket receive = receiveRequest();
-							String result = getMessage(receive);
-							if(result.substring(0,1) == "1" && result.substring(1,2)=="0"){
-								rdtSendState = 0;
-								i++;
-							}
-						} catch (SocketException e) {
-							System.err.println("socket timed out");
-							sendResponse(messagePackets[i], LOCALHOST, rcvPort);
+					try {
+						System.out.println("waiting on Receiver ACK1 reply");
+						_socket.setSoTimeout(300);
+						DatagramPacket receive = receiveRequest();
+						String result = getMessage(receive);
+						System.out.println("ACK" + result.charAt(0) +  " received" + " SEQ:" + this.seq + " Corruption: " + result.charAt(1));
+						//if ACK1 and corrupt = 0
+						if(result.charAt(0) == '1' && result.charAt(1) == '0'){
+							rdtSendState = 0;
+							i++;
 						}
-						break;	
-					}
-					else {
+					} catch (SocketException e) {
+						System.err.println("unable to receive message from server");
+						break;
+					} catch (SocketTimeoutException ex) {
+						System.out.println("Sender socket timed out case 3, resending packet");
+						sendResponse(messagePackets[i], LOCALHOST, rcvPort);
 						break;
 					}
+					break;
 				}
 			}
 		}
 		_socket.close();
-//			
-//			
-//			
-//			DatagramPacket newDatagramPacket = receiveRequest();
-//
-//			String request = new String (newDatagramPacket.getData()).trim();
-//
-//			System.out.println ("sender IP: " + newDatagramPacket.getAddress().getHostAddress());
-//			System.out.println ("sender request: " + request);
-//			
-//			if (request.equals("<shutdown/>")) {
-//				_continueService = false;
-//			}
-//
-//			if (request != null) {
-//
-//				String response = "<echo>"+request+"</echo>";
-//            
-//				sendResponse(
-//					response, 
-//					newDatagramPacket.getAddress().getHostName(), 
-//					newDatagramPacket.getPort());
-//			}
-//			else {
-//				System.err.println ("incorrect response from server");
-//			}
-//		}
 	}
 
     /**
@@ -221,14 +197,15 @@ public class Sender {
      *
      * @return - the datagram containing the client's request or NULL if an error occured
      */
-    public DatagramPacket receiveRequest() {
+    public DatagramPacket receiveRequest() throws SocketTimeoutException {
         byte[] buffer = new byte[BUFFER_SIZE];
         DatagramPacket newDatagramPacket = new DatagramPacket(buffer, BUFFER_SIZE);
         try {
             _socket.receive(newDatagramPacket);
         } catch (SocketTimeoutException ex) {
-            System.err.println("socket has timed out");
-            return null;
+        	System.out.println("Timout: No Ack Received");
+        	//throw exception to caller
+        	throw ex;
         } catch (IOException e) {
         	System.err.println("unable to receive message from server");
             return null;
@@ -267,28 +244,24 @@ public class Sender {
     {
         Sender sender = new Sender();
         
-        String    serverName;
-        
-        String    req;
-        
-//        if (args.length != 5) {
-//            System.err.println("Usage: Sender <port number> <rcvHost> <rcvPort> <networkHost> <networkPort>\n");
-//            return;
-//        }
+        if (args.length != 5) {
+            System.err.println("Usage: Sender <port number> <rcvHost> <rcvPort> <networkHost> <networkPort>\n");
+            return;
+        }
 
         try {
-        	sender.port = 0;
-        	sender.rcvHost = LOCALHOST;
-        	sender.rcvPort = 3000;
-        	sender.networkHost = LOCALHOST;
-        	sender.networkPort = 2999;
+//        	sender.port = 7000;
+//        	sender.rcvHost = LOCALHOST;
+//        	sender.rcvPort = 6000;
+//        	sender.networkHost = LOCALHOST;
+//        	sender.networkPort = 5000;
         	
         	
-//        	sender.port = Integer.parseInt(args[0]);
-//        	sender.rcvHost = args[1];
-//        	sender.rcvPort = Integer.parseInt(args[2]);
-//        	sender.networkHost = args[3];
-//        	sender.networkPort = Integer.parseInt(args[2]);
+        	sender.port = Integer.parseInt(args[0]);
+        	sender.rcvHost = args[1];
+        	sender.rcvPort = Integer.parseInt(args[2]);
+        	sender.networkHost = args[3];
+        	sender.networkPort = Integer.parseInt(args[4]);
         } catch (NumberFormatException xcp) {
             System.err.println("Usage: Sender <port number> <rcvHost> <rcvPort> <networkHost> <networkPort>\n");
             return;
@@ -299,7 +272,7 @@ public class Sender {
         if (sender.createSocket(sender.port) < 0) {
             return;
         }
-
+        System.out.println("Sender running at port # " + sender.port);
         sender.run();
         sender.closeSocket();
     }
