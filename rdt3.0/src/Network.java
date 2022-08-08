@@ -24,8 +24,8 @@ import java.util.concurrent.TimeUnit;
 public class Network {
 
 	private static final int      BUFFER_SIZE = 52;
-	private DatagramSocket        _socket; // the socket for communication with clients
-	private int                   port; // the port number for communication with this server
+	private DatagramSocket        _socket; // The socket for communication with clients
+	private int                   port; // The port number for communication with this server
 	private boolean               _continueService;
 	private static final String   LOCALHOST = "127.000.000.001";
 
@@ -58,14 +58,14 @@ public class Network {
 	}
 
 	public void run() {
-		// run server until gracefully shut down
+		// Run server until gracefully shut down
 		_continueService = true;
 
 		while (_continueService) {
 
 			DatagramPacket sendingDatagramPacket = receiveRequest();
 
-			// parse out addresses and segment from packet
+			// Parse out addresses and segment from packet
 			String request = new String(sendingDatagramPacket.getData()); // .trim();
 			request = request.substring(0, 52);
 			String addresses = request.substring(0, 42);
@@ -79,7 +79,7 @@ public class Network {
 				break;
 			}
 
-			// forward packet to sender
+			// Forward packet to sender
 			boolean delay = false;
 			boolean corrupt = false;
 			boolean lost = false;
@@ -140,8 +140,8 @@ public class Network {
 	/**
 	 * Receives a client's request.
 	 *
-	 * @return - the datagram containing the client's request or NULL if an error
-	 *         Occurred
+	 * @return - the datagram containing the client's request or NULL if an error Occurred
+	 *         
 	 */
 	public DatagramPacket receiveRequest() {
 		System.out.println("Network waiting to receive packet.");
@@ -160,7 +160,7 @@ public class Network {
 	/*
 	 * Prints the response to the screen in a formatted way.
 	 *
-	 * response - the server's response as an XML formatted string
+	 * Response - the server's response as an XML formatted string
 	 *
 	 */
 	public static void printResponse(String response) {
@@ -184,8 +184,6 @@ public class Network {
 	 */
 	public static void main(String[] args) {
 		Network server = new Network();
-		String serverName;
-		String req;
 
 		if (args.length != 4) {
 			System.err.println("Usage: Server <port number> <lost percent> <delayed percent> <error percent>\n");
@@ -219,18 +217,18 @@ public class Network {
 	 * @param hostname - the hostname of the host receiving this datagram
 	 * @param port     - the port number of the host receiving this datagram
 	 *
-	 * @return a complete datagram or null if an error occurred creating the
-	 *         datagram
+	 * @return a complete datagram or null if an error occurred creating the datagram
+	 *         
 	 */
 	private DatagramPacket createDatagramPacket(String request, String hostname, int port) {
 		byte buffer[] = new byte[BUFFER_SIZE];
 
-		// empty message into buffer
+//		Empty message into buffer
 		for (int i = 0; i < BUFFER_SIZE; i++) {
 			buffer[i] = '\0';
 		}
 
-		// copy message into buffer
+//		Copy message into buffer
 		byte data[] = request.getBytes();
 		System.arraycopy(data, 0, buffer, 0, Math.min(data.length, buffer.length));
 

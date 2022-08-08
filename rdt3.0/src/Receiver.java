@@ -28,7 +28,6 @@ public class Receiver {
 	private static final int       BUFFER_SIZE = 52;
 	private DatagramSocket         _socket; // The socket for communication with a Server
 	private int                    networkPort;
-	private int                    senderPort;
 
 	/**
 	 * Constructs a TCPclient object.
@@ -157,7 +156,7 @@ public class Receiver {
 
 			case 0:
 
-//				if ACK1 and not corrupt
+//				If ACK1 and not corrupt
 				if (messageContent.charAt(0) == '1' && messageContent.charAt(1) == '0') {
 //					Response with "1" = ACK1
 					sendResponse(message, LOCALHOST, "1");
@@ -175,14 +174,14 @@ public class Receiver {
 			case 1:
 
 				if (messageContent.charAt(0) == '0' && messageContent.charAt(1) == '0') {
-//					response with "1" = ACK1
+//					Response with "1" = ACK1
 					sendResponse(message, LOCALHOST, "0");
 					break;
 				} else if (messageContent.charAt(0) == '1' && messageContent.charAt(1) == '0') {
 					System.out.println("rdt state(1) - Received packet content : " + messageContent.substring(2));
 					sb.append(messageContent.substring(2));
 					sendResponse(message, LOCALHOST, "1");
-//					move to next state
+//					Move to next state
 					rdtReceiveState = 0;
 					break;
 				}
@@ -248,22 +247,22 @@ public class Receiver {
 	private DatagramPacket createDatagramPacket(String request, String hostname, String ack) {
 		byte buffer[] = new byte[BUFFER_SIZE];
 
-		// empty message into buffer
+		// Empty message into buffer
 		for (int i = 0; i < BUFFER_SIZE; i++) {
 			buffer[i] = '\0';
 		}
 		String addresses = request.substring(0, 42);
-		// the substrings are flipped here so srcPort and destPorts swapped
+		// The substrings are flipped here so srcPort and destPorts swapped
 		int srcPort = Integer.parseInt(addresses.substring(36, 42));
 		int destPort = Integer.parseInt(addresses.substring(15, 21));
 
-		// format is srcIP 16 bytes, srcPort 6 bytes, destIP 16 bytes, destPort 6 bytes
+		// Format is srcIP 16 bytes, srcPort 6 bytes, destIP 16 bytes, destPort 6 bytes
 		String networkLayer = LOCALHOST + padLeftZeros(String.valueOf(srcPort), 6) + LOCALHOST
 				+ padLeftZeros(String.valueOf(destPort), 6);
-		// format is seq# 1 byte, checkSum 1 byte, message 8 bytes
+		// Format is seq# 1 byte, checkSum 1 byte, message 8 bytes
 		String transportLayer = ack + "0        ";
 		String message = networkLayer + transportLayer;
-		// copy message into buffer
+		// Copy message into buffer
 		byte data[] = message.getBytes();
 
 		System.arraycopy(data, 0, buffer, 0, Math.min(data.length, buffer.length));

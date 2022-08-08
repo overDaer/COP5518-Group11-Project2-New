@@ -27,10 +27,10 @@ import java.util.Scanner;
 public class Sender {
 
 	private static final int      BUFFER_SIZE = 52;
-	private DatagramSocket        _socket; // the socket for communication with clients
+	private DatagramSocket        _socket; // The socket for communication with clients
 	private static final String   LOCALHOST = "127.000.000.001";
 
-	private int                   port; // the port number for communication with this server
+	private int                   port; // The port number for communication with this server
 	private String                rcvHost;
 	private int                   rcvPort;
 	private String                networkHost;
@@ -39,7 +39,6 @@ public class Sender {
 
 	private boolean               _continueService;
 	private int                   rdtSendState = 0; // RDT has four possible states for sender
-	private boolean               waitResponse = false;
 
 	/**
 	 * Constructs a UDPserver object.
@@ -115,14 +114,14 @@ public class Sender {
 						String result = getMessage(receive);
 						System.out.println("ACK" + result.charAt(0) + " received" + " SEQ:" + this.seq + " Corruption: "
 								+ result.charAt(1));
-//						result first char represents ACK0 or ACK1, second char represents corrupt
+//						Result first char represents ACK0 or ACK1, second char represents corrupt
 						if (result.charAt(0) == '0' && result.charAt(1) == '0') {
 							rdtSendState++;
 							i++;
 						}
 
 					} catch (SocketException e) {
-//						if socket times out send packet again
+//						If socket times out send packet again
 						System.err.println("Unable to receive message from Server");
 						break;
 					} catch (SocketTimeoutException ex) {
@@ -147,7 +146,7 @@ public class Sender {
 						String result = getMessage(receive);
 						System.out.println("ACK" + result.charAt(0) + " received" + " SEQ:" + this.seq + " Corruption: "
 								+ result.charAt(1));
-						// if ACK1 and corrupt = 0
+						// If ACK1 and corrupt = 0
 						if (result.charAt(0) == '1' && result.charAt(1) == '0') {
 							rdtSendState = 0;
 							i++;
@@ -207,7 +206,7 @@ public class Sender {
 			_socket.receive(newDatagramPacket);
 		} catch (SocketTimeoutException ex) {
 			System.out.println("Timout: No Ack Received");
-//        	throw exception to caller
+//        	Throw Exception to caller
 			throw ex;
 		} catch (IOException e) {
 			System.err.println("Unable to receive message from server");
@@ -263,7 +262,7 @@ public class Sender {
 			return;
 		}
 
-//      construct client and client socket        
+//      Construct client and client socket        
 		if (sender.createSocket(sender.port) < 0) {
 			return;
 		}
@@ -298,17 +297,17 @@ public class Sender {
 	private DatagramPacket createDatagramPacket(String request, String hostname, int port) {
 		byte buffer[] = new byte[BUFFER_SIZE];
 
-		// empty message into buffer
+		// Empty message into buffer
 		for (int i = 0; i < BUFFER_SIZE; i++) {
 			buffer[i] = '\0';
 		}
-		// format is srcIP 16 bytes, srcPort 6 bytes, destIP 16 bytes, destPort 6 bytes
+		// Format is srcIP 16 bytes, srcPort 6 bytes, destIP 16 bytes, destPort 6 bytes
 		String networkLayer = LOCALHOST + padLeftZeros(String.valueOf(this.port), 6) + LOCALHOST
 				+ padLeftZeros(String.valueOf(port), 6);
-		// format is seq# 1 byte, checkSum 1 byte, message 8 bytes
+		// Format is seq# 1 byte, checkSum 1 byte, message 8 bytes
 		String transportLayer = String.valueOf(this.seq) + "0" + request;
 		String message = networkLayer + transportLayer;
-		// copy message into buffer
+		// Copy message into buffer
 		byte data[] = message.getBytes();
 
 		System.arraycopy(data, 0, buffer, 0, Math.min(data.length, buffer.length));
