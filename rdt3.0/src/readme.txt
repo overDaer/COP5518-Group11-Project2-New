@@ -8,8 +8,8 @@ INSTRUCTIONS:
 First compile the classes using javac command:
 
 javac -source 1.8 -target 1.8 Network.java
-javac -source 1.8 -target 1.8 Network.java
-javac -source 1.8 -target 1.8 Network.java
+javac -source 1.8 -target 1.8 Receiver.java
+javac -source 1.8 -target 1.8 Sender.java
 
 The format is following the instructions:
 
